@@ -72,6 +72,8 @@ public:
     std::string             m_szInstanceSignature = "";
     std::string             m_szCurrentSplash = "error";
 
+    std::mutex              m_mtxEventLoopMutex;
+
     std::vector<std::unique_ptr<SMonitor>>      m_vMonitors;
     std::vector<std::unique_ptr<CWindow>>       m_vWindows;
     std::deque<std::unique_ptr<CWindow>>        m_dUnmanagedX11Windows;

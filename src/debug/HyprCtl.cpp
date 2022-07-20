@@ -592,11 +592,15 @@ std::string getRequestFromThread(std::string rq) {
 
     static auto *const PNOVFR = &g_pConfigManager->getConfigValuePtr("misc:no_vfr")->intValue;
 
+    g_pCompositor->m_mtxEventLoopMutex.lock();
+
     // TODO: is this safe...?
     // this might be a race condition
     // tested with 2 instances of `watch -n 0.1 hyprctl splash` and seems to not crash so I'll take that as a yes
     if (!*PNOVFR)
         g_pCompositor->scheduleFrameForMonitor(g_pCompositor->m_vMonitors.front().get());
+
+    g_pCompositor->m_mtxEventLoopMutex.unlock();
 
     while (HyprCtl::request != "" || HyprCtl::requestMade || HyprCtl::requestReady) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));

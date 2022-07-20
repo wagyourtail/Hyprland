@@ -2,9 +2,12 @@
 #include "MiscFunctions.hpp"
 #include <string>
 #include "../debug/Log.hpp"
+#include "../Compositor.hpp"
 
 void handleWrapped(wl_listener* listener, void* data) {
     CHyprWLListener* pListener = wl_container_of(listener, pListener, m_sListener);
+
+    std::lock_guard<std::mutex> lg(g_pCompositor->m_mtxEventLoopMutex);
 
     pListener->emit(data);
 }
