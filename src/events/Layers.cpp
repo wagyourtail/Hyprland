@@ -101,6 +101,9 @@ void Events::listener_mapLayerSurface(void* owner, void* data) {
 
     layersurface->layerSurface->mapped = true;
 
+    if (!layersurface->hyprListener_commitLayerSurface.isConnected())
+        layersurface->hyprListener_commitLayerSurface.initCallback(&layersurface->layerSurface->surface->events.commit, &Events::listener_commitLayerSurface, layersurface, "layerSurface");
+
     // fix if it changed its mon
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
@@ -147,6 +150,8 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
         Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
         return;
     }
+
+    layersurface->hyprListener_commitLayerSurface.removeCallback();
 
     // make a snapshot and start fade
     g_pHyprOpenGL->makeLayerSnapshot(layersurface);
