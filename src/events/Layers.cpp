@@ -205,7 +205,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     }
 
     if (layersurface->layerSurface->current.committed != 0) {
-        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+        //g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
         if (layersurface->layer != layersurface->layerSurface->current.layer) {
             PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
