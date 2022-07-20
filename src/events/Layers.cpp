@@ -185,8 +185,6 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (!layersurface->layerSurface || !layersurface->layerSurface->output)
         return;
-        
-    return;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
@@ -223,5 +221,5 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     // update geom if it changed
     layersurface->geometry = {layersurface->geometry.x, layersurface->geometry.y, layersurface->layerSurface->surface->current.width, layersurface->layerSurface->surface->current.height};
 
-    g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
+   // g_pHyprRenderer->damageSurface(layersurface->layerSurface->surface, layersurface->position.x, layersurface->position.y);
 }
