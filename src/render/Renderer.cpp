@@ -581,13 +581,13 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             continue;
         }
         // Apply
-        bool changed = ls->geometry.width == box.width && ls->geometry.height == box.height;
+        bool same = ls->geometry.width == box.width && ls->geometry.height == box.height;
 
         ls->geometry = box;
 
         apply_exclusive(usableArea, PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
-        if (changed)
+        if (!same)
             wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
 
         Debug::log(LOG, "LayerSurface %x arranged: x: %i y: %i w: %i h: %i with margins: t: %i l: %i r: %i b: %i", &ls, box.x, box.y, box.width, box.height, PSTATE->margin.top, PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
