@@ -183,7 +183,7 @@ void Events::listener_unmapLayerSurface(void* owner, void* data) {
 void Events::listener_commitLayerSurface(void* owner, void* data) {
     SLayerSurface* layersurface = (SLayerSurface*)owner;
 
-    if (!layersurface->layerSurface || !layersurface->layerSurface->output)
+    if (!layersurface->layerSurface || !layersurface->layerSurface->output || layersurface->fadingOut || layersurface->noProcess)
         return;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
@@ -205,7 +205,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     }
 
     if (layersurface->layerSurface->current.committed != 0) {
-        //g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+        g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
 
         if (layersurface->layer != layersurface->layerSurface->current.layer) {
             PMONITOR->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
@@ -213,7 +213,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             layersurface->layer = layersurface->layerSurface->current.layer;
         }
 
-        //g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
     }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
