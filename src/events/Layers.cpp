@@ -202,7 +202,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         layersurface->monitorID = PMONITOR->ID;
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->ID);
         g_pHyprRenderer->arrangeLayersForMonitor(POLDMON->ID);
-    }*/
+    }
 
     if (layersurface->layerSurface->current.committed != 0) {
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
@@ -214,7 +214,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
         }
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-    }
+    }*/
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
