@@ -195,7 +195,7 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     g_pHyprRenderer->damageBox(&geomFixed);
 
     // fix if it changed its mon
-    /*if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
+    if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
         const auto POLDMON = g_pCompositor->getMonitorFromID(layersurface->monitorID);
         POLDMON->m_aLayerSurfaceLists[layersurface->layer].remove(layersurface);
         PMONITOR->m_aLayerSurfaceLists[layersurface->layer].push_back(layersurface);
@@ -213,8 +213,8 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
             layersurface->layer = layersurface->layerSurface->current.layer;
         }
 
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
-    }*/
+        //g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMONITOR->ID);
+    }
 
     layersurface->position = Vector2D(layersurface->geometry.x, layersurface->geometry.y);
 
