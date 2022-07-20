@@ -581,11 +581,14 @@ void CHyprRenderer::arrangeLayerArray(SMonitor* pMonitor, const std::list<SLayer
             continue;
         }
         // Apply
+        bool changed = ls->geometry.width == box.width && ls->geometry.height == box.height;
+
         ls->geometry = box;
 
         apply_exclusive(usableArea, PSTATE->anchor, PSTATE->exclusive_zone, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
-        wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
+        if (changed)
+            wlr_layer_surface_v1_configure(ls->layerSurface, box.width, box.height);
 
         Debug::log(LOG, "LayerSurface %x arranged: x: %i y: %i w: %i h: %i with margins: t: %i l: %i r: %i b: %i", &ls, box.x, box.y, box.width, box.height, PSTATE->margin.top, PSTATE->margin.left, PSTATE->margin.right, PSTATE->margin.bottom);
     }
@@ -603,11 +606,11 @@ void CHyprRenderer::arrangeLayersForMonitor(const int& monitor) {
 
     wlr_box usableArea = {PMONITOR->vecPosition.x, PMONITOR->vecPosition.y, PMONITOR->vecSize.x, PMONITOR->vecSize.y};
 
-   // for (auto& la : PMONITOR->m_aLayerSurfaceLists)
-   //     arrangeLayerArray(PMONITOR, la, true, &usableArea);
+    for (auto& la : PMONITOR->m_aLayerSurfaceLists)
+        arrangeLayerArray(PMONITOR, la, true, &usableArea);
 
-   // for (auto& la : PMONITOR->m_aLayerSurfaceLists)
-   //     arrangeLayerArray(PMONITOR, la, false, &usableArea);
+    for (auto& la : PMONITOR->m_aLayerSurfaceLists)
+        arrangeLayerArray(PMONITOR, la, false, &usableArea);
 
     PMONITOR->vecReservedTopLeft = Vector2D(usableArea.x, usableArea.y) - PMONITOR->vecPosition;
     PMONITOR->vecReservedBottomRight = PMONITOR->vecSize - Vector2D(usableArea.width, usableArea.height) - PMONITOR->vecReservedTopLeft;
