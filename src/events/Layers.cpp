@@ -185,6 +185,8 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
 
     if (!layersurface->layerSurface || !layersurface->layerSurface->output)
         return;
+        
+    return;
 
     const auto PMONITOR = g_pCompositor->getMonitorFromOutput(layersurface->layerSurface->output);
 
