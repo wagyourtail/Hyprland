@@ -19,6 +19,7 @@ CEventManager::CEventManager() {
 }
 
 void CEventManager::startThread() {
+    return;
     std::thread([&]() {
         const auto SOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 

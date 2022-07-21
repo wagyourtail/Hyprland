@@ -20,6 +20,10 @@ void CThreadManager::handle() {
 
     g_pConfigManager->init();
 
+    g_pConfigManager->tick();
+
+    return;
+
     HyprCtl::startHyprCtlSocket();
 
     while (3.1415f) {
