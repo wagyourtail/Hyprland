@@ -6,6 +6,8 @@
 void handleWrapped(wl_listener* listener, void* data) {
     CHyprWLListener* pListener = wl_container_of(listener, pListener, m_sListener);
 
+    std::this_thread::sleep_for(std::chrono::microseconds(500));
+
     pListener->emit(data);
 }
 
