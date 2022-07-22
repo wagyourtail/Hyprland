@@ -17,6 +17,8 @@ public:
 
     wl_listener m_sListener;
 
+    std::string     m_szAuthor = "";
+
     void emit(void*);
 
 private:
@@ -26,5 +28,5 @@ private:
 
     std::function<void(void*, void*)> m_pCallback = nullptr;
 
-    std::string     m_szAuthor = "";
+    
 };
