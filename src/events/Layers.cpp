@@ -191,8 +191,10 @@ void Events::listener_commitLayerSurface(void* owner, void* data) {
     if (!PMONITOR)
         return;
 
-    wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
-    g_pHyprRenderer->damageBox(&geomFixed);
+    if (layersurface->geometry.width != 0 && layersurface->geometry.height != 0 && !layersurface->fadingOut && !layersurface->noProcess) {
+        wlr_box geomFixed = {layersurface->geometry.x, layersurface->geometry.y, layersurface->geometry.width, layersurface->geometry.height};
+        g_pHyprRenderer->damageBox(&geomFixed);
+    }
 
     // fix if it changed its mon
     if ((uint64_t)layersurface->monitorID != PMONITOR->ID) {
