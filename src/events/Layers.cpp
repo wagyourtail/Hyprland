@@ -44,7 +44,7 @@ void Events::listener_newLayerSurface(wl_listener* listener, void* data) {
     layerSurface->hyprListener_destroyLayerSurface.initCallback(&WLRLAYERSURFACE->surface->events.destroy, &Events::listener_destroyLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_mapLayerSurface.initCallback(&WLRLAYERSURFACE->events.map, &Events::listener_mapLayerSurface, layerSurface, "layerSurface");
     layerSurface->hyprListener_unmapLayerSurface.initCallback(&WLRLAYERSURFACE->events.unmap, &Events::listener_unmapLayerSurface, layerSurface, "layerSurface");
-    layerSurface->hyprListener_newPopup.initCallback(&WLRLAYERSURFACE->events.new_popup, &Events::listener_newPopup, layerSurface, "layerSurface");
+    //layerSurface->hyprListener_newPopup.initCallback(&WLRLAYERSURFACE->events.new_popup, &Events::listener_newPopup, layerSurface, "layerSurface");
 
     layerSurface->layerSurface = WLRLAYERSURFACE;
     layerSurface->layer = WLRLAYERSURFACE->current.layer;
@@ -74,10 +74,10 @@ void Events::listener_destroyLayerSurface(void* owner, void* data) {
 
     layersurface->noProcess = true;
 
-   // layersurface->hyprListener_commitLayerSurface.removeCallback();
-   // layersurface->hyprListener_destroyLayerSurface.removeCallback();
-   // layersurface->hyprListener_mapLayerSurface.removeCallback();
-   // layersurface->hyprListener_unmapLayerSurface.removeCallback();
+    layersurface->hyprListener_commitLayerSurface.removeCallback();
+    layersurface->hyprListener_destroyLayerSurface.removeCallback();
+    layersurface->hyprListener_mapLayerSurface.removeCallback();
+    layersurface->hyprListener_unmapLayerSurface.removeCallback();
    // layersurface->hyprListener_newPopup.removeCallback();
 
     // rearrange to fix the reserved areas
