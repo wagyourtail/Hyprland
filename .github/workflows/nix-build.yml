@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
 
       - name: Install Nix
         uses: cachix/install-nix-action@v22
