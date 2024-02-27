@@ -135,7 +135,8 @@ class CHyprRenderer {
         bool hiddenOnKeyboard = false;
     } m_sCursorHiddenConditions;
 
-    CRenderbuffer*                              getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt);
+    CRenderbuffer*                              getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt, CMonitor* pMonitor);
+
     std::vector<std::unique_ptr<CRenderbuffer>> m_vRenderbuffers;
 
     friend class CHyprOpenGLImpl;

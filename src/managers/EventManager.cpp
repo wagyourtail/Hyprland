@@ -19,12 +19,12 @@
 
 CEventManager::CEventManager() {}
 
-int fdHandleWrite(int fd, uint32_t mask, void* data) {
+static int fdHandleWrite(int fd, uint32_t mask, void* data) {
     const auto PEVMGR = (CEventManager*)data;
     return PEVMGR->onFDWrite(fd, mask);
 }
 
-int socket2HandleWrite(int fd, uint32_t mask, void* data) {
+static int socket2HandleWrite(int fd, uint32_t mask, void* data) {
     const auto PEVMGR = (CEventManager*)data;
     return PEVMGR->onSocket2Write(fd, mask);
 }

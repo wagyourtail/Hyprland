@@ -1,6 +1,7 @@
 #include "Renderbuffer.hpp"
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
+#include "../managers/FrameSchedulingManager.hpp"
 
 #include <dlfcn.h>
 
@@ -15,9 +16,24 @@ CRenderbuffer::~CRenderbuffer() {
     glDeleteRenderbuffers(1, &m_iRBO);
 
     g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(wlr_egl_get_display(g_pCompositor->m_sWLREGL), m_iImage);
+
+    wl_event_source_remove(m_pFDWrite);
+
+    g_pFrameSchedulingManager->dropBuffer(m_pWlrBuffer);
 }
 
-CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer(buffer) {
+static int fdHandleWrite(int fd, uint32_t mask, void* data) {
+    if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
+        return 0;
+
+    const auto RB = (CRenderbuffer*)data;
+
+    g_pFrameSchedulingManager->gpuDone(RB->m_pWlrBuffer);
+
+    return 0;
+}
+
+CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format, CMonitor* pMonitor) : m_pWlrBuffer(buffer), m_pMonitor(pMonitor) {
 
     // EVIL, but we can't include a hidden header because nixos is fucking special
     static EGLImageKHR (*PWLREGLCREATEIMAGEFROMDMABUF)(wlr_egl*, wlr_dmabuf_attributes*, bool*);
@@ -58,7 +74,20 @@ CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format) : m_pWlrBuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     hyprListener_destroyBuffer.initCallback(
-        &buffer->events.destroy, [](void* owner, void* data) { g_pHyprRenderer->onRenderbufferDestroy((CRenderbuffer*)owner); }, this, "CRenderbuffer");
+        &buffer->events.destroy,
+        [](void* owner, void* data) {
+            const auto RB = (CRenderbuffer*)owner;
+            g_pHyprRenderer->onRenderbufferDestroy(RB);
+            g_pFrameSchedulingManager->dropBuffer(RB->m_pWlrBuffer);
+        },
+        this, "CRenderbuffer");
+
+    wlr_dmabuf_attributes attrs = {0};
+    wlr_buffer_get_dmabuf(m_pWlrBuffer, &attrs);
+
+    m_pFDWrite = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, attrs.fd[0], WL_EVENT_READABLE, fdHandleWrite, this);
+
+    g_pFrameSchedulingManager->registerBuffer(m_pWlrBuffer, pMonitor);
 }
 
 void CRenderbuffer::bind() {

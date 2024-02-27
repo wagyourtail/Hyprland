@@ -13,6 +13,8 @@
 #include <ranges>
 #include "helpers/VarList.hpp"
 
+#include "managers/FrameSchedulingManager.hpp"
+
 int handleCritSignal(int signo, void* data) {
     Debug::log(LOG, "Hyprland received signal {}", signo);
 
@@ -520,6 +522,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Debug::log(LOG, "Creating the CursorManager!");
             g_pCursorManager = std::make_unique<CCursorManager>();
+
+            Debug::log(LOG, "Creating the FrameSchedulingManager!");
+            g_pFrameSchedulingManager = std::make_unique<CFrameSchedulingManager>();
         } break;
         default: UNREACHABLE();
     }
@@ -2375,7 +2380,10 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if (pMonitor->renderingActive)
         pMonitor->pendingFrame = true;
 
-    wlr_output_schedule_frame(pMonitor->output);
+    if (!pMonitor->frameNeededSource)
+        return;
+
+    wl_event_source_timer_update(pMonitor->frameNeededSource, 1);
 }
 
 CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {

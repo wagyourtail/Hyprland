@@ -6,7 +6,7 @@ class CMonitor;
 
 class CRenderbuffer {
   public:
-    CRenderbuffer(wlr_buffer* buffer, uint32_t format);
+    CRenderbuffer(wlr_buffer* buffer, uint32_t format, CMonitor* pMonitor);
     ~CRenderbuffer();
 
     void          bind();
@@ -22,4 +22,6 @@ class CRenderbuffer {
     EGLImageKHR  m_iImage = 0;
     GLuint       m_iRBO   = 0;
     CFramebuffer m_sFramebuffer;
+    CMonitor*    m_pMonitor = nullptr;
+    wl_event_source* m_pFDWrite = nullptr;
 };

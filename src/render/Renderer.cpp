@@ -1063,6 +1063,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
 }
 
 void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
+
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -2273,6 +2274,8 @@ bool CHyprRenderer::applyMonitorRule(CMonitor* pMonitor, SMonitorRule* pMonitorR
 
     Events::listener_change(nullptr, nullptr);
 
+    g_pCompositor->scheduleFrameForMonitor(pMonitor);
+
     return true;
 }
 
@@ -2585,13 +2588,13 @@ void CHyprRenderer::renderSoftwareCursors(CMonitor* pMonitor, const CRegion& dam
     }
 }
 
-CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt) {
+CRenderbuffer* CHyprRenderer::getOrCreateRenderbuffer(wlr_buffer* buffer, uint32_t fmt, CMonitor* pMonitor) {
     auto it = std::find_if(m_vRenderbuffers.begin(), m_vRenderbuffers.end(), [&](const auto& other) { return other->m_pWlrBuffer == buffer; });
 
     if (it != m_vRenderbuffers.end())
         return it->get();
 
-    return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt)).get();
+    return m_vRenderbuffers.emplace_back(std::make_unique<CRenderbuffer>(buffer, fmt, pMonitor)).get();
 }
 
 void CHyprRenderer::makeEGLCurrent() {
@@ -2636,7 +2639,7 @@ bool CHyprRenderer::beginRender(CMonitor* pMonitor, CRegion& damage, eRenderMode
         m_pCurrentWlrBuffer = wlr_buffer_lock(buffer);
 
     try {
-        m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentWlrBuffer, pMonitor->drmFormat);
+        m_pCurrentRenderbuffer = getOrCreateRenderbuffer(m_pCurrentWlrBuffer, pMonitor->drmFormat, pMonitor);
     } catch (std::exception& e) {
         Debug::log(ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->szName);
         wlr_buffer_unlock(m_pCurrentWlrBuffer);

@@ -98,8 +98,9 @@ class CMonitor {
     bool                    pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
     bool                    renderingActive = false;
 
-    wl_event_source*        renderTimer  = nullptr; // for RAT
-    bool                    RATScheduled = false;
+    wl_event_source*        renderTimer       = nullptr; // for RAT
+    wl_event_source*        frameNeededSource = nullptr; // for ::scheduleFrameForMonitor
+    bool                    RATScheduled      = false;
     CTimer                  lastPresentationTimer;
 
     SMonitorRule            activeMonitorRule;
@@ -129,6 +130,7 @@ class CMonitor {
     DYNLISTENER(monitorNeedsFrame);
     DYNLISTENER(monitorCommit);
     DYNLISTENER(monitorBind);
+    DYNLISTENER(monitorPresent);
 
     // methods
     void     onConnect(bool noRule);

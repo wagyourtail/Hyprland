@@ -5,6 +5,7 @@
 #include "Events.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../managers/FrameSchedulingManager.hpp"
 
 // --------------------------------------------------------- //
 //   __  __  ____  _   _ _____ _______ ____  _____   _____   //
@@ -126,34 +127,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     CMonitor* const PMONITOR = (CMonitor*)owner;
 
-    if ((g_pCompositor->m_sWLRSession && !g_pCompositor->m_sWLRSession->active) || !g_pCompositor->m_bSessionActive || g_pCompositor->m_bUnsafeState) {
-        Debug::log(WARN, "Attempted to render frame on inactive session!");
-
-        if (g_pCompositor->m_bUnsafeState && std::ranges::any_of(g_pCompositor->m_vMonitors.begin(), g_pCompositor->m_vMonitors.end(), [&](auto& m) {
-                return m->output != g_pCompositor->m_pUnsafeOutput->output;
-            })) {
-            // restore from unsafe state
-            g_pCompositor->leaveUnsafeState();
-        }
-
-        return; // cannot draw on session inactive (different tty)
-    }
-
-    if (!PMONITOR->m_bEnabled)
-        return;
-
-    g_pHyprRenderer->recheckSolitaryForMonitor(PMONITOR);
-
-    PMONITOR->tearingState.busy = false;
-
-    if (PMONITOR->tearingState.activelyTearing && PMONITOR->solitaryClient /* can be invalidated by a recheck */) {
-
-        if (!PMONITOR->tearingState.frameScheduledWhileBusy)
-            return; // we did not schedule a frame yet to be displayed, but we are tearing. Why render?
-
-        PMONITOR->tearingState.nextRenderTorn          = true;
-        PMONITOR->tearingState.frameScheduledWhileBusy = false;
-    }
+    return; // TODO: remove completely
 
     static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
     static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
@@ -259,4 +233,9 @@ void Events::listener_monitorCommit(void* owner, void* data) {
 
 void Events::listener_monitorBind(void* owner, void* data) {
     ;
+}
+
+void Events::listener_monitorPresent(void* owner, void* data) {
+    const auto PMONITOR = (CMonitor*)owner;
+    g_pFrameSchedulingManager->onPresent(PMONITOR);
 }
