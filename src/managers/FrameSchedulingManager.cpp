@@ -141,12 +141,17 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     float msUntilVblank = 0;
 
     if (presentationData) {
-        const std::chrono::system_clock::time_point LASTVBLANK{std::chrono::duration_cast<std::chrono::system_clock::duration>(
-            std::chrono::seconds{presentationData->when->tv_sec} + std::chrono::nanoseconds{presentationData->when->tv_nsec})};
+        timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        const std::chrono::system_clock::duration LASTVBLANK{
+            std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{now.tv_sec} + std::chrono::nanoseconds{now.tv_nsec}) -
+            std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{presentationData->when->tv_sec} +
+                                                                            std::chrono::nanoseconds{presentationData->when->tv_nsec})};
         msUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - LASTVBLANK).count();
+            std::chrono::duration_cast<std::chrono::milliseconds>(LASTVBLANK).count();
 
-        DATA->nextVblank = LASTVBLANK + std::chrono::nanoseconds{int{presentationData->refresh ? presentationData->refresh : 1000000000 / pMonitor->refreshRate}};
+        DATA->nextVblank = std::chrono::system_clock::now() + LASTVBLANK +
+            std::chrono::nanoseconds{int{presentationData->refresh ? presentationData->refresh : 1000000000 / pMonitor->refreshRate}};
     } else
         msUntilVblank = std::chrono::duration_cast<std::chrono::milliseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
 
