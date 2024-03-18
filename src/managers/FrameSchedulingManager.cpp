@@ -36,7 +36,6 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
         return;
     }
 
-    DATA->noVblankTimer = true;
     onPresent(pMonitor, nullptr);
 }
 
@@ -52,7 +51,6 @@ void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
 
     // delayed frame, let's render immediately, our shit will be presented soon
     // if we finish rendering before the next vblank somehow, kernel will be mad, but oh well
-    DATA->noVblankTimer = true;
     g_pHyprRenderer->renderMonitor(DATA->pMonitor);
     DATA->delayedFrameSubmitted = true;
 }
@@ -97,7 +95,6 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
 
     if (DATA->delayedFrameSubmitted) {
         DATA->delayedFrameSubmitted = false;
-        DATA->activelyPushing       = false;
         return;
     }
 
@@ -127,18 +124,22 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     }
 
     // we can't do this on wayland
-    if (!wlr_backend_is_wl(pMonitor->output->backend) && !DATA->noVblankTimer && presentationData) {
+    float msUntilVblank = 0;
+
+    if (presentationData) {
         const std::chrono::system_clock::time_point LASTVBLANK{std::chrono::duration_cast<std::chrono::system_clock::duration>(
             std::chrono::seconds{presentationData->when->tv_sec} + std::chrono::nanoseconds{presentationData->when->tv_nsec})};
-        const float                                 MSUNTILVBLANK = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
+        msUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - LASTVBLANK).count();
+    } else
+        msUntilVblank = std::chrono::duration_cast<std::chrono::milliseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
+
+    if (msUntilVblank > 0) {
         wl_event_source_timer_update(DATA->event, 0);
-        wl_event_source_timer_update(DATA->event, std::floor(MSUNTILVBLANK));
+        wl_event_source_timer_update(DATA->event, std::floor(msUntilVblank));
     }
 
     renderMonitor(DATA);
-
-    DATA->noVblankTimer = false;
 }
 
 CFrameSchedulingManager::SSchedulingData* CFrameSchedulingManager::dataFor(CMonitor* pMonitor) {

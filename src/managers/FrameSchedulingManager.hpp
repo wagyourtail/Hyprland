@@ -43,9 +43,6 @@ class CFrameSchedulingManager {
         // whether the frame was submitted from gpuDone
         bool delayedFrameSubmitted = false;
 
-        // don't plant a vblank timer
-        bool noVblankTimer = false;
-
         // we need to render a few full frames at the beginning to catch all buffers
         int forceFrames = 5;
 
@@ -64,6 +61,9 @@ class CFrameSchedulingManager {
         // legacy scheduler: for backends that do not send us reliable present events
         // these rely on onFrame
         bool legacyScheduler = false;
+
+        // next predicted vblank
+        std::chrono::system_clock::time_point nextVblank;
     };
 
     std::vector<SSchedulingData> m_vSchedulingData;
