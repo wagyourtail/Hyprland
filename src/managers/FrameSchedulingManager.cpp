@@ -157,7 +157,7 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
 
     if (msUntilVblank > 0) {
         wl_event_source_timer_update(DATA->event, 0);
-        wl_event_source_timer_update(DATA->event, std::floor(msUntilVblank));
+        wl_event_source_timer_update(DATA->event, std::floor(msUntilVblank + 1));
     }
 
     Debug::log(LOG, "until vblank {:.2f}", msUntilVblank);
