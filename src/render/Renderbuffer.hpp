@@ -13,15 +13,17 @@ class CRenderbuffer {
     void          bindFB();
     void          unbind();
     CFramebuffer* getFB();
+    void          plantFence();
+    void          removeFence();
 
     wlr_buffer*   m_pWlrBuffer = nullptr;
 
     DYNLISTENER(destroyBuffer);
 
   private:
-    EGLImageKHR  m_iImage = 0;
-    GLuint       m_iRBO   = 0;
-    CFramebuffer m_sFramebuffer;
-    CMonitor*    m_pMonitor = nullptr;
+    EGLImageKHR      m_iImage = 0;
+    GLuint           m_iRBO   = 0;
+    CFramebuffer     m_sFramebuffer;
+    CMonitor*        m_pMonitor = nullptr;
     wl_event_source* m_pFDWrite = nullptr;
 };

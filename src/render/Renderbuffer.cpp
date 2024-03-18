@@ -30,6 +30,8 @@ static int fdHandleWrite(int fd, uint32_t mask, void* data) {
 
     g_pFrameSchedulingManager->gpuDone(RB->m_pWlrBuffer);
 
+    RB->removeFence();
+
     return 0;
 }
 
@@ -82,11 +84,6 @@ CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format, CMonitor* pMon
         },
         this, "CRenderbuffer");
 
-    wlr_dmabuf_attributes attrs = {0};
-    wlr_buffer_get_dmabuf(m_pWlrBuffer, &attrs);
-
-    m_pFDWrite = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, attrs.fd[0], WL_EVENT_READABLE, fdHandleWrite, this);
-
     g_pFrameSchedulingManager->registerBuffer(m_pWlrBuffer, pMonitor);
 }
 
@@ -110,4 +107,15 @@ void CRenderbuffer::unbind() {
 
 CFramebuffer* CRenderbuffer::getFB() {
     return &m_sFramebuffer;
+}
+
+void CRenderbuffer::plantFence() {
+    wlr_dmabuf_attributes attrs = {0};
+    wlr_buffer_get_dmabuf(m_pWlrBuffer, &attrs);
+    m_pFDWrite = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, attrs.fd[0], WL_EVENT_WRITABLE, fdHandleWrite, this);
+}
+
+void CRenderbuffer::removeFence() {
+    wl_event_source_remove(m_pFDWrite);
+    m_pFDWrite = nullptr;
 }

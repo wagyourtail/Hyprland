@@ -2676,6 +2676,7 @@ void CHyprRenderer::endRender() {
         glFlush();
 
     if (m_eRenderMode == RENDER_MODE_NORMAL) {
+        m_pCurrentRenderbuffer->plantFence();
         wlr_output_state_set_buffer(PMONITOR->state.wlr(), m_pCurrentWlrBuffer);
         unsetEGL(); // flush the context
     }
