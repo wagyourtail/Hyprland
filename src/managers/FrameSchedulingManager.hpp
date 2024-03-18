@@ -20,8 +20,11 @@ class CFrameSchedulingManager {
     void onFrameNeeded(CMonitor* pMonitor);
 
     void onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData);
+    void onFrame(CMonitor* pMonitor);
 
     int  onVblankTimer(void* data);
+
+    bool isMonitorUsingLegacyScheduler(CMonitor* pMonitor);
 
   private:
     struct SSchedulingData {
@@ -57,6 +60,10 @@ class CFrameSchedulingManager {
 
         // whether we're actively pushing frames
         bool activelyPushing = false;
+
+        // legacy scheduler: for backends that do not send us reliable present events
+        // these rely on onFrame
+        bool legacyScheduler = false;
     };
 
     std::vector<SSchedulingData> m_vSchedulingData;

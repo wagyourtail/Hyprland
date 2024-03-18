@@ -2383,7 +2383,7 @@ void CCompositor::scheduleFrameForMonitor(CMonitor* pMonitor) {
     if (!pMonitor->frameNeededSource)
         return;
 
-    wl_event_source_timer_update(pMonitor->frameNeededSource, 1);
+    pMonitor->scheduleFrame();
 }
 
 CWindow* CCompositor::getWindowByRegex(const std::string& regexp) {

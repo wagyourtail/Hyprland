@@ -340,8 +340,6 @@ CConfigManager::CConfigManager() {
     m_pConfig->addConfigValue("misc:no_direct_scanout", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:hide_cursor_on_touch", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:mouse_move_focuses_monitor", Hyprlang::INT{1});
-    m_pConfig->addConfigValue("misc:render_ahead_of_time", Hyprlang::INT{0});
-    m_pConfig->addConfigValue("misc:render_ahead_safezone", Hyprlang::INT{1});
     m_pConfig->addConfigValue("misc:cursor_zoom_factor", {1.f});
     m_pConfig->addConfigValue("misc:cursor_zoom_rigid", Hyprlang::INT{0});
     m_pConfig->addConfigValue("misc:allow_session_lock_restore", Hyprlang::INT{0});

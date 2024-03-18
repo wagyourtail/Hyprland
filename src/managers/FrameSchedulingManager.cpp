@@ -14,6 +14,8 @@ void CFrameSchedulingManager::registerMonitor(CMonitor* pMonitor) {
 
     SSchedulingData* DATA = &m_vSchedulingData.emplace_back(SSchedulingData{pMonitor});
     DATA->event           = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, onPresentTimer, DATA);
+
+    DATA->legacyScheduler = !wlr_backend_is_drm(pMonitor->output->backend);
 }
 
 void CFrameSchedulingManager::unregisterMonitor(CMonitor* pMonitor) {
@@ -25,7 +27,7 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
 
     RASSERT(DATA, "No data in onFrameNeeded");
 
-    if (pMonitor->tearingState.activelyTearing)
+    if (pMonitor->tearingState.activelyTearing || DATA->legacyScheduler)
         return;
 
     if (DATA->activelyPushing && DATA->lastPresent.getMillis() < 100) {
@@ -33,8 +35,6 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
             DATA->forceFrames++;
         return;
     }
-
-    Debug::log(LOG, "onFrameNeeded");
 
     DATA->noVblankTimer = true;
     onPresent(pMonitor, nullptr);
@@ -72,12 +72,23 @@ void CFrameSchedulingManager::dropBuffer(wlr_buffer* pBuffer) {
     }
 }
 
+void CFrameSchedulingManager::onFrame(CMonitor* pMonitor) {
+    const auto DATA = dataFor(pMonitor);
+
+    RASSERT(DATA, "No data in onFrame");
+
+    if (!DATA->legacyScheduler)
+        return;
+
+    renderMonitor(DATA);
+}
+
 void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData) {
     const auto DATA = dataFor(pMonitor);
 
     RASSERT(DATA, "No data in onPresent");
 
-    if (pMonitor->tearingState.activelyTearing) {
+    if (pMonitor->tearingState.activelyTearing || DATA->legacyScheduler) {
         DATA->activelyPushing = false;
         return; // don't render
     }
@@ -87,8 +98,6 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
         DATA->activelyPushing       = false;
         return;
     }
-
-    Debug::log(LOG, "onPresent");
 
     int forceFrames = DATA->forceFrames + pMonitor->forceFullFrames;
 
@@ -114,8 +123,6 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
         DATA->activelyPushing = false;
         return;
     }
-
-    Debug::log(LOG, "remder!");
 
     // we can't do this on wayland
     if (!wlr_backend_is_wl(pMonitor->output->backend) && !DATA->noVblankTimer && presentationData) {
@@ -203,4 +210,13 @@ int CFrameSchedulingManager::onVblankTimer(void* data) {
     // what the fuck?
     Debug::log(ERR, "Vblank timer fired without a frame????");
     return 0;
+}
+
+bool CFrameSchedulingManager::isMonitorUsingLegacyScheduler(CMonitor* pMonitor) {
+    const auto DATA = dataFor(pMonitor);
+
+    if (!DATA)
+        return true;
+
+    return DATA->legacyScheduler;
 }

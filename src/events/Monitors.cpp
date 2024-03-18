@@ -127,40 +127,7 @@ void Events::listener_monitorFrame(void* owner, void* data) {
 
     CMonitor* const PMONITOR = (CMonitor*)owner;
 
-    return; // TODO: remove completely
-
-    static auto PENABLERAT = CConfigValue<Hyprlang::INT>("misc:render_ahead_of_time");
-    static auto PRATSAFE   = CConfigValue<Hyprlang::INT>("misc:render_ahead_safezone");
-
-    PMONITOR->lastPresentationTimer.reset();
-
-    if (*PENABLERAT && !PMONITOR->tearingState.nextRenderTorn) {
-        if (!PMONITOR->RATScheduled) {
-            // render
-            g_pHyprRenderer->renderMonitor(PMONITOR);
-        }
-
-        PMONITOR->RATScheduled = false;
-
-        const auto& [avg, max, min] = g_pHyprRenderer->getRenderTimes(PMONITOR);
-
-        if (max + *PRATSAFE > 1000.0 / PMONITOR->refreshRate)
-            return;
-
-        const auto MSLEFT = 1000.0 / PMONITOR->refreshRate - PMONITOR->lastPresentationTimer.getMillis();
-
-        PMONITOR->RATScheduled = true;
-
-        const auto ESTRENDERTIME = std::ceil(avg + *PRATSAFE);
-        const auto TIMETOSLEEP   = std::floor(MSLEFT - ESTRENDERTIME);
-
-        if (MSLEFT < 1 || MSLEFT < ESTRENDERTIME || TIMETOSLEEP < 1)
-            g_pHyprRenderer->renderMonitor(PMONITOR);
-        else
-            wl_event_source_timer_update(PMONITOR->renderTimer, TIMETOSLEEP);
-    } else {
-        g_pHyprRenderer->renderMonitor(PMONITOR);
-    }
+    g_pFrameSchedulingManager->onFrame(PMONITOR);
 }
 
 void Events::listener_monitorDestroy(void* owner, void* data) {

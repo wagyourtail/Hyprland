@@ -151,6 +151,7 @@ class CMonitor {
     void     updateMatrix();
     int64_t  activeWorkspaceID();
     int64_t  activeSpecialWorkspaceID();
+    void     scheduleFrame();
 
     bool     m_bEnabled             = false;
     bool     m_bRenderingInitPassed = false;

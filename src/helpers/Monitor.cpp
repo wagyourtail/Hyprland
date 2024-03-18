@@ -16,8 +16,6 @@ static int ratHandler(void* data) {
 static int wlFrameCallback(void* data) {
     const auto PMONITOR = (CMonitor*)data;
 
-    Debug::log(LOG, "wlFrameCallback");
-
     g_pFrameSchedulingManager->onFrameNeeded(PMONITOR);
 
     return 1;
@@ -761,8 +759,16 @@ void CMonitor::updateMatrix() {
 int64_t CMonitor::activeWorkspaceID() {
     return activeWorkspace ? activeWorkspace->m_iID : 0;
 }
+
 int64_t CMonitor::activeSpecialWorkspaceID() {
     return activeSpecialWorkspace ? activeSpecialWorkspace->m_iID : 0;
+}
+
+void CMonitor::scheduleFrame() {
+    if (!g_pFrameSchedulingManager->isMonitorUsingLegacyScheduler(this))
+        wl_event_source_timer_update(frameNeededSource, 1);
+    else
+        wlr_output_schedule_frame(output);
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) {
