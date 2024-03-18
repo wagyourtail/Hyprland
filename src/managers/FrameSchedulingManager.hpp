@@ -39,8 +39,8 @@ class CFrameSchedulingManager {
         // whether the frame was submitted from gpuDone
         bool delayedFrameSubmitted = false;
 
-        // whether this call comes from gpuDone
-        bool gpuDoneCall = false;
+        // don't plant a vblank timer
+        bool noVblankTimer = false;
 
         // we need to render a few full frames at the beginning to catch all buffers
         int forceFrames = 5;

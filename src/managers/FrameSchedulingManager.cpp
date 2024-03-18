@@ -25,11 +25,17 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
 
     RASSERT(DATA, "No data in gpuDone");
 
-    if (pMonitor->output->frame_pending || pMonitor->tearingState.activelyTearing)
+    if (pMonitor->tearingState.activelyTearing)
         return;
+
+    if (DATA->activelyPushing) {
+        DATA->forceFrames++;
+        return;
+    }
 
     Debug::log(LOG, "onFrameNeeded");
 
+    DATA->noVblankTimer = true;
     onPresent(pMonitor);
 }
 
@@ -43,7 +49,7 @@ void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
 
     // delayed frame, let's render immediately, our shit will be presented soon
     // if we finish rendering before the next vblank somehow, kernel will be mad, but oh well
-    DATA->gpuDoneCall = true;
+    DATA->noVblankTimer = true;
     g_pHyprRenderer->renderMonitor(DATA->pMonitor);
     DATA->delayedFrameSubmitted = true;
 }
@@ -111,7 +117,7 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor) {
     Debug::log(LOG, "remder!");
 
     // we can't do this on wayland
-    if (!wlr_backend_is_wl(pMonitor->output->backend) && !DATA->gpuDoneCall) {
+    if (!wlr_backend_is_wl(pMonitor->output->backend) && !DATA->noVblankTimer) {
         const float TIMEUNTILVBLANK = 1000.0 / pMonitor->refreshRate;
         wl_event_source_timer_update(DATA->event, 0);
         wl_event_source_timer_update(DATA->event, std::floor(TIMEUNTILVBLANK));
@@ -119,7 +125,7 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor) {
 
     renderMonitor(DATA);
 
-    DATA->gpuDoneCall = false;
+    DATA->noVblankTimer = false;
 }
 
 CFrameSchedulingManager::SSchedulingData* CFrameSchedulingManager::dataFor(CMonitor* pMonitor) {
