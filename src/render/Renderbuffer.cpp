@@ -116,6 +116,7 @@ void CRenderbuffer::plantFence() {
 }
 
 void CRenderbuffer::removeFence() {
-    wl_event_source_remove(m_pFDWrite);
+    if (m_pFDWrite)
+        wl_event_source_remove(m_pFDWrite);
     m_pFDWrite = nullptr;
 }
