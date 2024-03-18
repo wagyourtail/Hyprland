@@ -28,7 +28,8 @@ static int fdHandleWrite(int fd, uint32_t mask, void* data) {
 
     const auto RB = (CRenderbuffer*)data;
 
-    g_pFrameSchedulingManager->gpuDone(RB->m_pWlrBuffer);
+    if (RB->hasFence())
+        g_pFrameSchedulingManager->gpuDone(RB->m_pWlrBuffer);
 
     RB->removeFence();
 
@@ -119,4 +120,8 @@ void CRenderbuffer::removeFence() {
     if (m_pFDWrite)
         wl_event_source_remove(m_pFDWrite);
     m_pFDWrite = nullptr;
+}
+
+bool CRenderbuffer::hasFence() {
+    return m_pFDWrite;
 }

@@ -15,6 +15,7 @@ class CRenderbuffer {
     CFramebuffer* getFB();
     void          plantFence();
     void          removeFence();
+    bool          hasFence();
 
     wlr_buffer*   m_pWlrBuffer = nullptr;
 
