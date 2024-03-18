@@ -48,6 +48,8 @@ void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
     if (!DATA->delayed)
         return;
 
+    Debug::log(LOG, "Missed a frame, rendering instantly");
+
     // delayed frame, let's render immediately, our shit will be presented soon
     // if we finish rendering before the next vblank somehow, kernel will be mad, but oh well
     DATA->noVblankTimer = true;
