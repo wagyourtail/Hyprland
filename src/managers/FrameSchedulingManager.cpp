@@ -25,6 +25,8 @@ void CFrameSchedulingManager::unregisterMonitor(CMonitor* pMonitor) {
 void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
     const auto DATA = dataFor(pMonitor);
 
+    Debug::log(LOG, "onFrameNeeded");
+
     RASSERT(DATA, "No data in onFrameNeeded");
 
     if (pMonitor->tearingState.activelyTearing || DATA->legacyScheduler)
@@ -42,6 +44,8 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
 void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
     const auto DATA = dataFor(pBuffer);
 
+    Debug::log(LOG, "gpuDone");
+
     RASSERT(DATA, "No data in gpuDone");
 
     if (!DATA->delayed)
@@ -58,6 +62,8 @@ void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
 void CFrameSchedulingManager::registerBuffer(wlr_buffer* pBuffer, CMonitor* pMonitor) {
     const auto DATA = dataFor(pMonitor);
 
+    Debug::log(LOG, "registerBuffer");
+
     RASSERT(DATA, "No data in registerBuffer");
 
     if (std::find(DATA->buffers.begin(), DATA->buffers.end(), pBuffer) != DATA->buffers.end())
@@ -67,6 +73,8 @@ void CFrameSchedulingManager::registerBuffer(wlr_buffer* pBuffer, CMonitor* pMon
 }
 
 void CFrameSchedulingManager::dropBuffer(wlr_buffer* pBuffer) {
+    Debug::log(LOG, "dropBuffer");
+
     for (auto& d : m_vSchedulingData) {
         std::erase(d.buffers, pBuffer);
     }
@@ -74,6 +82,8 @@ void CFrameSchedulingManager::dropBuffer(wlr_buffer* pBuffer) {
 
 void CFrameSchedulingManager::onFrame(CMonitor* pMonitor) {
     const auto DATA = dataFor(pMonitor);
+
+    Debug::log(LOG, "onFrame");
 
     RASSERT(DATA, "No data in onFrame");
 
@@ -85,6 +95,8 @@ void CFrameSchedulingManager::onFrame(CMonitor* pMonitor) {
 
 void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData) {
     const auto DATA = dataFor(pMonitor);
+
+    Debug::log(LOG, "onPresent");
 
     RASSERT(DATA, "No data in onPresent");
 
@@ -123,6 +135,8 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
         return;
     }
 
+    Debug::log(LOG, "render");
+
     // we can't do this on wayland
     float msUntilVblank = 0;
 
@@ -131,6 +145,8 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
             std::chrono::seconds{presentationData->when->tv_sec} + std::chrono::nanoseconds{presentationData->when->tv_nsec})};
         msUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - LASTVBLANK).count();
+
+        DATA->nextVblank = LASTVBLANK + std::chrono::nanoseconds{int{presentationData->refresh ? presentationData->refresh : 1000000000 / pMonitor->refreshRate}};
     } else
         msUntilVblank = std::chrono::duration_cast<std::chrono::milliseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
 
@@ -138,6 +154,8 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
         wl_event_source_timer_update(DATA->event, 0);
         wl_event_source_timer_update(DATA->event, std::floor(msUntilVblank));
     }
+
+    Debug::log(LOG, "until vblank {:.2f}", msUntilVblank);
 
     renderMonitor(DATA);
 }
@@ -200,11 +218,13 @@ int CFrameSchedulingManager::onVblankTimer(void* data) {
     auto DATA = (SSchedulingData*)data;
 
     if (DATA->rendered && DATA->gpuReady) {
+        Debug::log(LOG, "timer nothing");
         // cool, we don't need to do anything. Wait for present.
         return 0;
     }
 
     if (DATA->rendered && !DATA->gpuReady) {
+        Debug::log(LOG, "timer delay");
         // we missed a vblank :(
         DATA->delayed = true;
         return 0;
