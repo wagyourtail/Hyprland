@@ -6,6 +6,7 @@
 
 class CMonitor;
 struct wlr_buffer;
+struct wlr_output_event_present;
 
 class CFrameSchedulingManager {
   public:
@@ -18,7 +19,7 @@ class CFrameSchedulingManager {
 
     void onFrameNeeded(CMonitor* pMonitor);
 
-    void onPresent(CMonitor* pMonitor);
+    void onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData);
 
     int  onVblankTimer(void* data);
 

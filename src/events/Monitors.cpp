@@ -237,5 +237,6 @@ void Events::listener_monitorBind(void* owner, void* data) {
 
 void Events::listener_monitorPresent(void* owner, void* data) {
     const auto PMONITOR = (CMonitor*)owner;
-    g_pFrameSchedulingManager->onPresent(PMONITOR);
+    const auto DATA     = (wlr_output_event_present*)data;
+    g_pFrameSchedulingManager->onPresent(PMONITOR, DATA);
 }

@@ -23,20 +23,21 @@ void CFrameSchedulingManager::unregisterMonitor(CMonitor* pMonitor) {
 void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
     const auto DATA = dataFor(pMonitor);
 
-    RASSERT(DATA, "No data in gpuDone");
+    RASSERT(DATA, "No data in onFrameNeeded");
 
     if (pMonitor->tearingState.activelyTearing)
         return;
 
-    if (DATA->activelyPushing) {
-        DATA->forceFrames++;
+    if (DATA->activelyPushing && DATA->lastPresent.getMillis() < 100) {
+        if (DATA->forceFrames < 1)
+            DATA->forceFrames++;
         return;
     }
 
     Debug::log(LOG, "onFrameNeeded");
 
     DATA->noVblankTimer = true;
-    onPresent(pMonitor);
+    onPresent(pMonitor, nullptr);
 }
 
 void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
@@ -71,7 +72,7 @@ void CFrameSchedulingManager::dropBuffer(wlr_buffer* pBuffer) {
     }
 }
 
-void CFrameSchedulingManager::onPresent(CMonitor* pMonitor) {
+void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData) {
     const auto DATA = dataFor(pMonitor);
 
     RASSERT(DATA, "No data in onPresent");
@@ -117,10 +118,13 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor) {
     Debug::log(LOG, "remder!");
 
     // we can't do this on wayland
-    if (!wlr_backend_is_wl(pMonitor->output->backend) && !DATA->noVblankTimer) {
-        const float TIMEUNTILVBLANK = 1000.0 / pMonitor->refreshRate;
+    if (!wlr_backend_is_wl(pMonitor->output->backend) && !DATA->noVblankTimer && presentationData) {
+        const std::chrono::system_clock::time_point LASTVBLANK{std::chrono::duration_cast<std::chrono::system_clock::duration>(
+            std::chrono::seconds{presentationData->when->tv_sec} + std::chrono::nanoseconds{presentationData->when->tv_nsec})};
+        const float                                 MSUNTILVBLANK = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - LASTVBLANK).count();
         wl_event_source_timer_update(DATA->event, 0);
-        wl_event_source_timer_update(DATA->event, std::floor(TIMEUNTILVBLANK));
+        wl_event_source_timer_update(DATA->event, std::floor(MSUNTILVBLANK));
     }
 
     renderMonitor(DATA);
