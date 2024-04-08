@@ -131,11 +131,6 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
 
     RASSERT(DATA, "No data in onPresent");
 
-    if (DATA->fenceSync) {
-        glDeleteSync(DATA->fenceSync);
-        DATA->fenceSync = nullptr;
-    }
-
     if (pMonitor->tearingState.activelyTearing || DATA->legacyScheduler) {
         DATA->activelyPushing = false;
         return; // don't render
@@ -144,6 +139,11 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     if (DATA->delayedFrameSubmitted) {
         DATA->delayedFrameSubmitted = false;
         return;
+    }
+
+    if (DATA->fenceSync) {
+        glDeleteSync(DATA->fenceSync);
+        DATA->fenceSync = nullptr;
     }
 
     Debug::log(LOG, "Present: del {}", DATA->delayed);
@@ -265,13 +265,13 @@ void CFrameSchedulingManager::onVblankTimer(void* data) {
 
     Debug::log(LOG, "vblank: signaled {}", GPUSignaled);
 
-    if (DATA->rendered && GPUSignaled) {
+    if (GPUSignaled) {
         Debug::log(LOG, "timer nothing");
         // cool, we don't need to do anything. Wait for present.
         return;
     }
 
-    if (DATA->rendered && !GPUSignaled) {
+    if (!GPUSignaled) {
         Debug::log(LOG, "timer delay");
         // we missed a vblank :(
         DATA->delayed = true;
