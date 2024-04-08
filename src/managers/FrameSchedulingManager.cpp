@@ -50,6 +50,7 @@ void CFrameSchedulingManager::registerMonitor(CMonitor* pMonitor) {
 void CFrameSchedulingManager::unregisterMonitor(CMonitor* pMonitor) {
     SSchedulingData* DATA = &m_vSchedulingData.emplace_back(SSchedulingData{pMonitor});
     g_pEventLoopManager->removeTimer(DATA->fenceTimer);
+    g_pEventLoopManager->removeTimer(DATA->vblankTimer);
     std::erase_if(m_vSchedulingData, [pMonitor](const auto& d) { return d.pMonitor == pMonitor; });
 }
 
