@@ -29,7 +29,7 @@ class CFrameSchedulingManager {
     void onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData);
     void onFrame(CMonitor* pMonitor);
 
-    void onVblankTimer(void* data);
+    void onVblankTimer(CMonitor* pMonitor);
 
     bool isMonitorUsingLegacyScheduler(CMonitor* pMonitor);
 

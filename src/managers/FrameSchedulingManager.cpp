@@ -4,7 +4,7 @@
 #include "eventLoop/EventLoopManager.hpp"
 
 static void onPresentTimer(std::shared_ptr<CEventLoopTimer> self, void* data) {
-    g_pFrameSchedulingManager->onVblankTimer(data);
+    g_pFrameSchedulingManager->onVblankTimer((CMonitor*)data);
 }
 
 static void onFenceTimer(std::shared_ptr<CEventLoopTimer> self, void* data) {
@@ -41,7 +41,7 @@ void CFrameSchedulingManager::registerMonitor(CMonitor* pMonitor) {
 #endif
 
     DATA->fenceTimer  = std::make_shared<CEventLoopTimer>(::onFenceTimer, pMonitor);
-    DATA->vblankTimer = std::make_shared<CEventLoopTimer>(::onPresentTimer, DATA);
+    DATA->vblankTimer = std::make_shared<CEventLoopTimer>(::onPresentTimer, pMonitor);
 
     g_pEventLoopManager->addTimer(DATA->fenceTimer);
     g_pEventLoopManager->addTimer(DATA->vblankTimer);
@@ -252,8 +252,10 @@ void CFrameSchedulingManager::renderMonitor(SSchedulingData* data) {
     data->rendered  = true;
 }
 
-void CFrameSchedulingManager::onVblankTimer(void* data) {
-    auto DATA = (SSchedulingData*)data;
+void CFrameSchedulingManager::onVblankTimer(CMonitor* pMonitor) {
+    const auto DATA = dataFor(pMonitor);
+
+    RASSERT(DATA, "No data in onVblankTimer");
 
     if (!DATA->rendered) {
         // what the fuck?
