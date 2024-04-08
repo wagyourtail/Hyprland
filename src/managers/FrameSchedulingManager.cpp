@@ -129,6 +129,11 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
 
     RASSERT(DATA, "No data in onPresent");
 
+    if (DATA->fenceSync) {
+        glDeleteSync(DATA->fenceSync);
+        DATA->fenceSync = nullptr;
+    }
+
     if (pMonitor->tearingState.activelyTearing || DATA->legacyScheduler) {
         DATA->activelyPushing = false;
         return; // don't render
@@ -184,13 +189,15 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
         µsUntilVblank = std::chrono::duration_cast<std::chrono::microseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
 
     if (µsUntilVblank > 100)
-        DATA->vblankTimer->updateTimeout(std::chrono::microseconds(µsUntilVblank - 100));
+        DATA->vblankTimer->updateTimeout(std::chrono::microseconds(µsUntilVblank / 2));
 
     Debug::log(LOG, "until vblank {}µs", µsUntilVblank);
 
     renderMonitor(DATA);
 
 #ifndef GLES2
+    g_pHyprRenderer->makeEGLCurrent();
+
     DATA->fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 #endif
 }
