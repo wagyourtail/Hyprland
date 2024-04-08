@@ -249,11 +249,17 @@ void CFrameSchedulingManager::renderMonitor(SSchedulingData* data) {
     }
 
     data->fenceSync = g_pHyprRenderer->renderMonitor(pMonitor, !data->legacyScheduler);
-    data->rendered = true;
+    data->rendered  = true;
 }
 
 void CFrameSchedulingManager::onVblankTimer(void* data) {
     auto DATA = (SSchedulingData*)data;
+
+    if (!DATA->rendered) {
+        // what the fuck?
+        Debug::log(ERR, "Vblank timer fired without a frame????");
+        return;
+    }
 
 #ifndef GLES2
 
@@ -269,9 +275,7 @@ void CFrameSchedulingManager::onVblankTimer(void* data) {
         Debug::log(LOG, "timer nothing");
         // cool, we don't need to do anything. Wait for present.
         return;
-    }
-
-    if (!GPUSignaled) {
+    } else {
         Debug::log(LOG, "timer delay");
         // we missed a vblank :(
         DATA->delayed = true;
@@ -279,9 +283,6 @@ void CFrameSchedulingManager::onVblankTimer(void* data) {
         DATA->fenceTimer->updateTimeout(std::chrono::microseconds(850));
         return;
     }
-
-    // what the fuck?
-    Debug::log(ERR, "Vblank timer fired without a frame????");
 #endif
 }
 
