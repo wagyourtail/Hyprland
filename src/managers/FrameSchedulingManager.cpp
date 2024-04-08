@@ -190,18 +190,12 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     } else
         µsUntilVblank = std::chrono::duration_cast<std::chrono::microseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
 
-    if (µsUntilVblank > 100)
-        DATA->vblankTimer->updateTimeout(std::chrono::microseconds(µsUntilVblank / 2));
+    if (µsUntilVblank > 500)
+        DATA->vblankTimer->updateTimeout(std::chrono::microseconds(µsUntilVblank - 500));
 
     Debug::log(LOG, "until vblank {}µs", µsUntilVblank);
 
     renderMonitor(DATA);
-
-#ifndef GLES2
-    g_pHyprRenderer->makeEGLCurrent();
-
-    DATA->fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-#endif
 }
 
 CFrameSchedulingManager::SSchedulingData* CFrameSchedulingManager::dataFor(CMonitor* pMonitor) {
@@ -254,7 +248,7 @@ void CFrameSchedulingManager::renderMonitor(SSchedulingData* data) {
         pMonitor->tearingState.frameScheduledWhileBusy = false;
     }
 
-    g_pHyprRenderer->renderMonitor(pMonitor);
+    data->fenceSync = g_pHyprRenderer->renderMonitor(pMonitor, !data->legacyScheduler);
     data->rendered = true;
 }
 
@@ -262,6 +256,8 @@ void CFrameSchedulingManager::onVblankTimer(void* data) {
     auto DATA = (SSchedulingData*)data;
 
 #ifndef GLES2
+
+    g_pHyprRenderer->makeEGLCurrent();
 
     GLint syncStatus = 0;
     glGetSynciv(DATA->fenceSync, GL_SYNC_STATUS, sizeof(GLint), nullptr, &syncStatus);

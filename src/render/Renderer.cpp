@@ -1062,7 +1062,7 @@ bool CHyprRenderer::attemptDirectScanout(CMonitor* pMonitor) {
     return true;
 }
 
-void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
+GLsync CHyprRenderer::renderMonitor(CMonitor* pMonitor, bool withSync) {
 
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -1122,7 +1122,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         if (pMonitor->framesToSkip > 10)
             pMonitor->framesToSkip = 0;
-        return;
+        return nullptr;
     }
 
     // checks //
@@ -1150,7 +1150,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         if (!wlr_gamma_control_v1_apply(PGAMMACTRL, pMonitor->state.wlr())) {
             Debug::log(ERR, "Could not apply gamma control to {}", pMonitor->szName);
-            return;
+            return nullptr;
         }
 
         if (!wlr_output_test_state(pMonitor->output, pMonitor->state.wlr())) {
@@ -1168,17 +1168,17 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         if (!*PTEARINGENABLED) {
             Debug::log(WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
-            return;
+            return nullptr;
         }
 
         if (g_pHyprOpenGL->m_RenderData.mouseZoomFactor != 1.0) {
             Debug::log(WARN, "Tearing commit requested but scale factor is not 1, ignoring");
-            return;
+            return nullptr;
         }
 
         if (!pMonitor->tearingState.canTear) {
             Debug::log(WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
-            return;
+            return nullptr;
         }
 
         if (pMonitor->solitaryClient)
@@ -1187,7 +1187,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     if (!*PNODIRECTSCANOUT && !shouldTear) {
         if (attemptDirectScanout(pMonitor)) {
-            return;
+            return nullptr;
         } else if (m_pLastScanout) {
             Debug::log(LOG, "Left a direct scanout.");
             m_pLastScanout = nullptr;
@@ -1208,11 +1208,11 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
     bool hasChanged = pMonitor->output->needs_frame || pixman_region32_not_empty(&pMonitor->damage.current);
 
     if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->forceFullFrames == 0 && damageBlinkCleanup == 0)
-        return;
+        return nullptr;
 
     if (*PDAMAGETRACKINGMODE == -1) {
         Debug::log(CRIT, "Damage tracking mode -1 ????");
-        return;
+        return nullptr;
     }
 
     EMIT_HOOK_EVENT("render", RENDER_PRE);
@@ -1252,7 +1252,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         pMonitor->state.clear();
 
-        return;
+        return nullptr;
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
@@ -1352,6 +1352,10 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);
 
+    GLsync sync = nullptr;
+    if (withSync)
+        sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
     endRender();
 
     TRACY_GPU_COLLECT;
@@ -1384,7 +1388,7 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
 
         wlr_damage_ring_add_whole(&pMonitor->damage);
 
-        return;
+        return sync;
     }
 
     if (shouldTear)
@@ -1409,6 +1413,8 @@ void CHyprRenderer::renderMonitor(CMonitor* pMonitor) {
             g_pDebugOverlay->renderDataNoOverlay(pMonitor, µs);
         }
     }
+
+    return sync;
 }
 
 void CHyprRenderer::renderWorkspace(CMonitor* pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {

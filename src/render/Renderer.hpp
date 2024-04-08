@@ -38,11 +38,15 @@ class CToplevelExportProtocolManager;
 class CInputManager;
 struct SSessionLockSurface;
 
+#ifdef GLES2
+#define GLsync void*
+#endif
+
 class CHyprRenderer {
   public:
     CHyprRenderer();
 
-    void                            renderMonitor(CMonitor* pMonitor);
+    GLsync                          renderMonitor(CMonitor* pMonitor, bool withSync = false);
     void                            outputMgrApplyTest(wlr_output_configuration_v1*, bool);
     void                            arrangeLayersForMonitor(const int&);
     void                            damageSurface(wlr_surface*, double, double, double scale = 1.0);
