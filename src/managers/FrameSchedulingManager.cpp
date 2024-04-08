@@ -139,6 +139,8 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
         return;
     }
 
+    Debug::log(LOG, "Present: del {}", DATA->delayed);
+
     int forceFrames = DATA->forceFrames + pMonitor->forceFullFrames;
 
     DATA->lastPresent.reset();
@@ -165,7 +167,6 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
 
     Debug::log(LOG, "render");
 
-    // we can't do this on wayland
     uint64_t µsUntilVblank = 0;
 
     if (presentationData) {
@@ -256,6 +257,8 @@ void CFrameSchedulingManager::onVblankTimer(void* data) {
     GLint syncStatus = 0;
     glGetSynciv(DATA->fenceSync, GL_SYNC_STATUS, sizeof(GLint), nullptr, &syncStatus);
     bool GPUSignaled = syncStatus == GL_SIGNALED;
+
+    Debug::log(LOG, "vblank: signaled {}", GPUSignaled);
 
     if (DATA->rendered && GPUSignaled) {
         Debug::log(LOG, "timer nothing");
