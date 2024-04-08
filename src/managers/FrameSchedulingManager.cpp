@@ -44,6 +44,7 @@ void CFrameSchedulingManager::registerMonitor(CMonitor* pMonitor) {
     DATA->vblankTimer = std::make_shared<CEventLoopTimer>(::onPresentTimer, pMonitor);
 
     g_pEventLoopManager->addTimer(DATA->fenceTimer);
+    g_pEventLoopManager->addTimer(DATA->vblankTimer);
 }
 
 void CFrameSchedulingManager::unregisterMonitor(CMonitor* pMonitor) {
