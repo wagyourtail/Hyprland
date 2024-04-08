@@ -48,7 +48,7 @@ class CFrameSchedulingManager {
         bool delayedFrameSubmitted = false;
 
         // we need to render a few full frames at the beginning to catch all buffers
-        int forceFrames = 5;
+        int forceFrames = 10;
 
         // last present timer
         CTimer lastPresent;

@@ -63,8 +63,7 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
         return;
 
     if (DATA->activelyPushing && DATA->lastPresent.getMillis() < 100) {
-        if (DATA->forceFrames < 1)
-            DATA->forceFrames++;
+        DATA->forceFrames = 1;
         return;
     }
 
@@ -167,27 +166,26 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     Debug::log(LOG, "render");
 
     // we can't do this on wayland
-    float µsUntilVblank = 0;
+    uint64_t µsUntilVblank = 0;
 
     if (presentationData) {
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
-        const std::chrono::system_clock::duration LASTVBLANK{
+        const std::chrono::system_clock::duration SINCELASTVBLANK{
             std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{now.tv_sec} + std::chrono::nanoseconds{now.tv_nsec}) -
             std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{presentationData->when->tv_sec} +
                                                                             std::chrono::nanoseconds{presentationData->when->tv_nsec})};
-        µsUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
-            std::chrono::duration_cast<std::chrono::microseconds>(LASTVBLANK).count();
+        µsUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000.0 : pMonitor->refreshRate / 1000000.0) -
+            std::chrono::duration_cast<std::chrono::microseconds>(SINCELASTVBLANK).count();
 
-        DATA->nextVblank = std::chrono::system_clock::now() + LASTVBLANK +
-            std::chrono::nanoseconds{int{presentationData->refresh ? presentationData->refresh : 1000000000 / pMonitor->refreshRate}};
+        DATA->nextVblank = std::chrono::system_clock::now() + std::chrono::microseconds{µsUntilVblank};
     } else
         µsUntilVblank = std::chrono::duration_cast<std::chrono::microseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
 
-    if (µsUntilVblank > 10)
-        DATA->vblankTimer->updateTimeout(std::chrono::microseconds((long)(µsUntilVblank - 100)));
+    if (µsUntilVblank > 100)
+        DATA->vblankTimer->updateTimeout(std::chrono::microseconds(µsUntilVblank - 100));
 
-    Debug::log(LOG, "until vblank {:.2f}µs", µsUntilVblank);
+    Debug::log(LOG, "until vblank {}µs", µsUntilVblank);
 
     renderMonitor(DATA);
 
