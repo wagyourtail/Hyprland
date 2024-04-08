@@ -7,6 +7,7 @@
 class CEventLoopTimer {
   public:
     CEventLoopTimer(std::optional<std::chrono::system_clock::duration> timeout, std::function<void(std::shared_ptr<CEventLoopTimer> self, void* data)> cb_, void* data_);
+    CEventLoopTimer(std::function<void(std::shared_ptr<CEventLoopTimer> self, void* data)> cb_, void* data_);
 
     // if not specified, disarms.
     // if specified, arms.

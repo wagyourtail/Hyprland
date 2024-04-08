@@ -3,6 +3,12 @@
 #include <memory>
 #include <vector>
 #include "../helpers/Timer.hpp"
+#include "eventLoop/EventLoopTimer.hpp"
+#ifndef GLES2
+#include <GLES3/gl32.h>
+#else
+#define GLsync void*
+#endif
 
 class CMonitor;
 struct wlr_buffer;
@@ -13,16 +19,17 @@ class CFrameSchedulingManager {
     void registerMonitor(CMonitor* pMonitor);
     void unregisterMonitor(CMonitor* pMonitor);
 
-    void gpuDone(wlr_buffer* pBuffer);
+    void gpuDone(CMonitor* pMonitor);
     void registerBuffer(wlr_buffer* pBuffer, CMonitor* pMonitor);
     void dropBuffer(wlr_buffer* pBuffer);
+    void onFenceTimer(CMonitor* pMonitor);
 
     void onFrameNeeded(CMonitor* pMonitor);
 
     void onPresent(CMonitor* pMonitor, wlr_output_event_present* presentationData);
     void onFrame(CMonitor* pMonitor);
 
-    int  onVblankTimer(void* data);
+    void onVblankTimer(void* data);
 
     bool isMonitorUsingLegacyScheduler(CMonitor* pMonitor);
 
@@ -32,9 +39,6 @@ class CFrameSchedulingManager {
 
         // CPU frame rendering has been finished
         bool rendered = false;
-
-        // GPU frame rendering has been finished
-        bool gpuReady = false;
 
         // GPU didn't manage to render last frame in time.
         // we got a vblank before we got a gpuDone()
@@ -52,9 +56,6 @@ class CFrameSchedulingManager {
         // buffers associated with this monitor
         std::vector<wlr_buffer*> buffers;
 
-        // event source for the vblank timer
-        wl_event_source* event = nullptr;
-
         // whether we're actively pushing frames
         bool activelyPushing = false;
 
@@ -64,6 +65,13 @@ class CFrameSchedulingManager {
 
         // next predicted vblank
         std::chrono::system_clock::time_point nextVblank;
+
+        // for delayed fence stuff
+        std::shared_ptr<CEventLoopTimer> fenceTimer;
+        std::shared_ptr<CEventLoopTimer> vblankTimer;
+
+        // fence sync
+        GLsync fenceSync = 0;
     };
 
     std::vector<SSchedulingData> m_vSchedulingData;

@@ -13,6 +13,13 @@ CEventLoopTimer::CEventLoopTimer(std::optional<std::chrono::system_clock::durati
         expires = std::chrono::system_clock::now() + *timeout;
 }
 
+CEventLoopTimer::CEventLoopTimer(std::function<void(std::shared_ptr<CEventLoopTimer> self, void* data)> cb_,
+                                 void* data_) :
+    cb(cb_),
+    data(data_) {
+    ;
+}
+
 void CEventLoopTimer::updateTimeout(std::optional<std::chrono::system_clock::duration> timeout) {
     if (!timeout.has_value()) {
         expires.reset();

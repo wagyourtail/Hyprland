@@ -22,20 +22,6 @@ CRenderbuffer::~CRenderbuffer() {
     g_pFrameSchedulingManager->dropBuffer(m_pWlrBuffer);
 }
 
-static int fdHandleWrite(int fd, uint32_t mask, void* data) {
-    if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
-        return 0;
-
-    const auto RB = (CRenderbuffer*)data;
-
-    if (RB->hasFence())
-        g_pFrameSchedulingManager->gpuDone(RB->m_pWlrBuffer);
-
-    RB->removeFence();
-
-    return 0;
-}
-
 CRenderbuffer::CRenderbuffer(wlr_buffer* buffer, uint32_t format, CMonitor* pMonitor) : m_pWlrBuffer(buffer), m_pMonitor(pMonitor) {
 
     // EVIL, but we can't include a hidden header because nixos is fucking special
@@ -108,20 +94,4 @@ void CRenderbuffer::unbind() {
 
 CFramebuffer* CRenderbuffer::getFB() {
     return &m_sFramebuffer;
-}
-
-void CRenderbuffer::plantFence() {
-    wlr_dmabuf_attributes attrs = {0};
-    wlr_buffer_get_dmabuf(m_pWlrBuffer, &attrs);
-    m_pFDWrite = wl_event_loop_add_fd(g_pCompositor->m_sWLEventLoop, attrs.fd[0], WL_EVENT_WRITABLE, fdHandleWrite, this);
-}
-
-void CRenderbuffer::removeFence() {
-    if (m_pFDWrite)
-        wl_event_source_remove(m_pFDWrite);
-    m_pFDWrite = nullptr;
-}
-
-bool CRenderbuffer::hasFence() {
-    return m_pFDWrite;
 }

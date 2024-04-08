@@ -1,9 +1,29 @@
 #include "FrameSchedulingManager.hpp"
 #include "../debug/Log.hpp"
 #include "../Compositor.hpp"
+#include "eventLoop/EventLoopManager.hpp"
 
-int onPresentTimer(void* data) {
-    return g_pFrameSchedulingManager->onVblankTimer(data);
+static void onPresentTimer(std::shared_ptr<CEventLoopTimer> self, void* data) {
+    g_pFrameSchedulingManager->onVblankTimer(data);
+}
+
+static void onFenceTimer(std::shared_ptr<CEventLoopTimer> self, void* data) {
+    g_pFrameSchedulingManager->onFenceTimer((CMonitor*)data);
+}
+
+void CFrameSchedulingManager::onFenceTimer(CMonitor* pMonitor) {
+    SSchedulingData* DATA = &m_vSchedulingData.emplace_back(SSchedulingData{pMonitor});
+
+    RASSERT(DATA, "No data in fenceTimer");
+
+#ifndef GLES2
+    GLint syncStatus = 0;
+    glGetSynciv(DATA->fenceSync, GL_SYNC_STATUS, sizeof(GLint), nullptr, &syncStatus);
+    bool GPUSignaled = syncStatus == GL_SIGNALED;
+
+    if (GPUSignaled)
+        gpuDone(pMonitor);
+#endif
 }
 
 void CFrameSchedulingManager::registerMonitor(CMonitor* pMonitor) {
@@ -13,12 +33,22 @@ void CFrameSchedulingManager::registerMonitor(CMonitor* pMonitor) {
     }
 
     SSchedulingData* DATA = &m_vSchedulingData.emplace_back(SSchedulingData{pMonitor});
-    DATA->event           = wl_event_loop_add_timer(g_pCompositor->m_sWLEventLoop, onPresentTimer, DATA);
 
+#ifdef GLES2
+    DATA->legacyScheduler = true;
+#else
     DATA->legacyScheduler = !wlr_backend_is_drm(pMonitor->output->backend);
+#endif
+
+    DATA->fenceTimer  = std::make_shared<CEventLoopTimer>(::onFenceTimer, pMonitor);
+    DATA->vblankTimer = std::make_shared<CEventLoopTimer>(::onPresentTimer, pMonitor);
+
+    g_pEventLoopManager->addTimer(DATA->fenceTimer);
 }
 
 void CFrameSchedulingManager::unregisterMonitor(CMonitor* pMonitor) {
+    SSchedulingData* DATA = &m_vSchedulingData.emplace_back(SSchedulingData{pMonitor});
+    g_pEventLoopManager->removeTimer(DATA->fenceTimer);
     std::erase_if(m_vSchedulingData, [pMonitor](const auto& d) { return d.pMonitor == pMonitor; });
 }
 
@@ -41,8 +71,8 @@ void CFrameSchedulingManager::onFrameNeeded(CMonitor* pMonitor) {
     onPresent(pMonitor, nullptr);
 }
 
-void CFrameSchedulingManager::gpuDone(wlr_buffer* pBuffer) {
-    const auto DATA = dataFor(pBuffer);
+void CFrameSchedulingManager::gpuDone(CMonitor* pMonitor) {
+    const auto DATA = dataFor(pMonitor);
 
     Debug::log(LOG, "gpuDone");
 
@@ -119,7 +149,6 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     if (DATA->forceFrames > 0)
         DATA->forceFrames--;
     DATA->rendered        = false;
-    DATA->gpuReady        = false;
     DATA->activelyPushing = true;
 
     // check if there is damage
@@ -138,7 +167,7 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
     Debug::log(LOG, "render");
 
     // we can't do this on wayland
-    float msUntilVblank = 0;
+    float µsUntilVblank = 0;
 
     if (presentationData) {
         timespec now;
@@ -147,22 +176,24 @@ void CFrameSchedulingManager::onPresent(CMonitor* pMonitor, wlr_output_event_pre
             std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{now.tv_sec} + std::chrono::nanoseconds{now.tv_nsec}) -
             std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{presentationData->when->tv_sec} +
                                                                             std::chrono::nanoseconds{presentationData->when->tv_nsec})};
-        msUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
-            std::chrono::duration_cast<std::chrono::milliseconds>(LASTVBLANK).count();
+        µsUntilVblank = (presentationData->refresh ? presentationData->refresh / 1000000.0 : pMonitor->refreshRate / 1000.0) -
+            std::chrono::duration_cast<std::chrono::microseconds>(LASTVBLANK).count();
 
         DATA->nextVblank = std::chrono::system_clock::now() + LASTVBLANK +
             std::chrono::nanoseconds{int{presentationData->refresh ? presentationData->refresh : 1000000000 / pMonitor->refreshRate}};
     } else
-        msUntilVblank = std::chrono::duration_cast<std::chrono::milliseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
+        µsUntilVblank = std::chrono::duration_cast<std::chrono::microseconds>(DATA->nextVblank - std::chrono::system_clock::now()).count();
 
-    if (msUntilVblank > 0) {
-        wl_event_source_timer_update(DATA->event, 0);
-        wl_event_source_timer_update(DATA->event, std::floor(msUntilVblank + 1));
-    }
+    if (µsUntilVblank > 10)
+        DATA->vblankTimer->updateTimeout(std::chrono::microseconds((long)(µsUntilVblank - 100)));
 
-    Debug::log(LOG, "until vblank {:.2f}", msUntilVblank);
+    Debug::log(LOG, "until vblank {:.2f}µs", µsUntilVblank);
 
     renderMonitor(DATA);
+
+#ifndef GLES2
+    DATA->fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+#endif
 }
 
 CFrameSchedulingManager::SSchedulingData* CFrameSchedulingManager::dataFor(CMonitor* pMonitor) {
@@ -219,25 +250,33 @@ void CFrameSchedulingManager::renderMonitor(SSchedulingData* data) {
     data->rendered = true;
 }
 
-int CFrameSchedulingManager::onVblankTimer(void* data) {
+void CFrameSchedulingManager::onVblankTimer(void* data) {
     auto DATA = (SSchedulingData*)data;
 
-    if (DATA->rendered && DATA->gpuReady) {
+#ifndef GLES2
+
+    GLint syncStatus = 0;
+    glGetSynciv(DATA->fenceSync, GL_SYNC_STATUS, sizeof(GLint), nullptr, &syncStatus);
+    bool GPUSignaled = syncStatus == GL_SIGNALED;
+
+    if (DATA->rendered && GPUSignaled) {
         Debug::log(LOG, "timer nothing");
         // cool, we don't need to do anything. Wait for present.
-        return 0;
+        return;
     }
 
-    if (DATA->rendered && !DATA->gpuReady) {
+    if (DATA->rendered && !GPUSignaled) {
         Debug::log(LOG, "timer delay");
         // we missed a vblank :(
         DATA->delayed = true;
-        return 0;
+        // start the fence timer
+        DATA->fenceTimer->updateTimeout(std::chrono::microseconds(850));
+        return;
     }
 
     // what the fuck?
     Debug::log(ERR, "Vblank timer fired without a frame????");
-    return 0;
+#endif
 }
 
 bool CFrameSchedulingManager::isMonitorUsingLegacyScheduler(CMonitor* pMonitor) {
