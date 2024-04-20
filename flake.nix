@@ -92,8 +92,6 @@
         # dependencies
         
         hyprland-protocols
-        wlroots-hyprland
-        udis86
         ;
     });
 
@@ -104,10 +102,8 @@
         } {
           name = "hyprland-shell";
           nativeBuildInputs = with pkgsFor.${system}; [cmake python3 expat libxml2];
-          buildInputs = [self.packages.${system}.wlroots-hyprland];
           hardeningDisable = ["fortify"];
           inputsFrom = [
-            self.packages.${system}.wlroots-hyprland
             self.packages.${system}.hyprland
           ];
         };

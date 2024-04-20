@@ -25,8 +25,6 @@ in {
     inputs.hyprland-protocols.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprwayland-scanner.overlays.default
-    self.overlays.wlroots-hyprland
-    self.overlays.udis86
     # Hyprland packages themselves
     (final: prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
@@ -35,8 +33,6 @@ in {
         stdenv = final.gcc13Stdenv;
         version = "${props.version}+date=${date}_${self.shortRev or "dirty"}";
         commit = self.rev or "";
-        udis86 = final.udis86-hyprland; # explicit override until decided on breaking change of the name
-        inherit (final) wlroots-hyprland; # explicit override until decided on breaking change of the name
         inherit date;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
@@ -62,18 +58,4 @@ in {
   hyprland-extras = lib.composeManyExtensions [
     inputs.xdph.overlays.xdg-desktop-portal-hyprland
   ];
-
-  udis86 = final: prev: {
-    udis86-hyprland = final.callPackage ./udis86.nix {};
-  };
-
-  # Patched version of wlroots for Hyprland.
-  # It is under a new package name so as to not conflict with
-  # the standard version in nixpkgs.
-  wlroots-hyprland = final: prev: {
-    wlroots-hyprland = final.callPackage ./wlroots.nix {
-      version = "${mkDate (inputs.wlroots.lastModifiedDate or "19700101")}_${inputs.wlroots.shortRev or "dirty"}";
-      src = inputs.wlroots;
-    };
-  };
 }
