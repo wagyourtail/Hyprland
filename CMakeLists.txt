@@ -33,6 +33,7 @@ add_subdirectory("subprojects/udis86")
 message(STATUS "Setting up wlroots")
 
 include(ExternalProject)
+include(GNUInstallDirs)
 
 if(CMAKE_BUILD_TYPE)
     string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
@@ -112,7 +113,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET
     hyprwayland-scanner>=0.3.3 hyprlang>=0.3.2 hyprcursor>=0.1.7
 )
 
-file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE SRCFILES "src/*.cpp")
 
 set(TRACY_CPP_FILES "")
 if(USE_TRACY)
@@ -282,3 +283,50 @@ protocolNew("staging/ext-session-lock/ext-session-lock-v1.xml" "ext-session-lock
 # tools
 add_subdirectory(hyprctl)
 add_subdirectory(hyprpm)
+
+# binary and symlink
+install(TARGETS Hyprland)
+
+install(CODE "execute_process( \
+        COMMAND ${CMAKE_COMMAND} -E create_symlink \
+        ${CMAKE_INSTALL_BINDIR}/Hyprland \
+        ${CMAKE_INSTALL_BINDIR}/hyprland
+        )"
+)
+
+# session file
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/wayland-sessions)
+
+# wallpapers
+file(GLOB_RECURSE WALLPAPERS "assets/wall*")
+install(FILES ${WALLPAPERS}
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/hyprland)
+
+# default config
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/hyprland)
+
+# portal config
+install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/xdg-desktop-portal)
+
+# man pages
+file(GLOB_RECURSE MANPAGES "docs/*.1")
+install(FILES ${MANPAGES}
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
+
+# headers
+file(GLOB_RECURSE HEADERS_HL "src/*.h*")
+file(GLOB_RECURSE HEADERS_WLR "subprojects/wlroots-hyprland/*.h")
+file(GLOB_RECURSE HEADERS_PROTO "protocols/*-protocol.h")
+
+install(FILES ${HEADERS_HL}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland)
+install(FILES ${HEADERS_WLR}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/wlroots)
+install(FILES ${HEADERS_PROTO}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/protocols)
+install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
