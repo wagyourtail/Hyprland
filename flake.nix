@@ -92,8 +92,6 @@
         # dependencies
         
         hyprland-protocols
-        wlroots-hyprland
-        udis86
         ;
     });
 
@@ -103,13 +101,9 @@
           stdenv = pkgsFor.${system}.gcc13Stdenv;
         } {
           name = "hyprland-shell";
-          nativeBuildInputs = with pkgsFor.${system}; [cmake python3 expat libxml2];
-          buildInputs = [self.packages.${system}.wlroots-hyprland];
+          nativeBuildInputs = with pkgsFor.${system}; [expat libxml2];
           hardeningDisable = ["fortify"];
-          inputsFrom = [
-            self.packages.${system}.wlroots-hyprland
-            self.packages.${system}.hyprland
-          ];
+          inputsFrom = [pkgsFor.${system}.hyprland];
         };
     });
 
