@@ -22,7 +22,6 @@ in {
   hyprland-packages = lib.composeManyExtensions [
     # Dependencies
     inputs.hyprcursor.overlays.default
-    inputs.hyprland-protocols.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprwayland-scanner.overlays.default
     self.overlays.wayland-protocols
