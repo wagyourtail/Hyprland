@@ -317,16 +317,37 @@ install(FILES ${MANPAGES}
         DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 
-# headers
-file(GLOB_RECURSE HEADERS_HL "src/*.h*")
-file(GLOB_RECURSE HEADERS_WLR "subprojects/wlroots-hyprland/*.h")
-file(GLOB_RECURSE HEADERS_PROTO "protocols/*-protocol.h")
-
-install(FILES ${HEADERS_HL}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland)
-install(FILES ${HEADERS_WLR}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/wlroots)
-install(FILES ${HEADERS_PROTO}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/protocols)
+# pkgconfig entry
 install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+# wlroots headers
+set(HEADERS_WLR "${CMAKE_CURRENT_SOURCE_DIR}/subprojects/wlroots-hyprland/include")
+install(DIRECTORY ${HEADERS_WLR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/wlroots
+        FILES_MATCHING PATTERN "*.h")
+
+# protocol headers
+set(HEADERS_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/protocols")
+install(DIRECTORY ${HEADERS_PROTO}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
+        FILES_MATCHING PATTERN "*.h*")
+
+# hyprland headers
+# Specify the root directory containing your header files
+set(HEADER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+# Find all directories within HEADER_ROOT
+file(GLOB SUBDIRS RELATIVE ${HEADER_ROOT} ${HEADER_ROOT}/*)
+
+# Install the header files from each directory preserving directory structure
+foreach(SUBDIR ${SUBDIRS})
+    if(IS_DIRECTORY ${HEADER_ROOT}/${SUBDIR})
+        file(GLOB_RECURSE HEADER_FILES "${HEADER_ROOT}/${SUBDIR}/*.h*")
+        install(FILES ${HEADER_FILES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/src/${SUBDIR})
+    endif()
+endforeach()
+
+# install header files from src/ root
+file(GLOB HEADER_FILES "${HEADER_ROOT}/*.h*")
+install(FILES ${HEADER_FILES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland/src)
