@@ -152,6 +152,8 @@ assert lib.assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been remov
           pkgconf
         ]}
       ''}
+
+      sed -i 's/''\${prefix}/''\${prefix}-dev/g' $out/lib/pkgconfig/hyprland.pc
     '';
 
     passthru.providedSessions = ["hyprland"];
